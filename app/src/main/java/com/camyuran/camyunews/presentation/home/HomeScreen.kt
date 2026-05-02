@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,15 +28,15 @@ fun HomeScreen(
     onArticleClick: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val articles by viewModel.articles.collectAsStateWithLifecycle()
     val availableDates by viewModel.availableDates.collectAsStateWithLifecycle()
-    val state = viewModel.getCurrentState()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var showCalendar by remember { mutableStateOf(false) }
     var showKeywordFilter by remember { mutableStateOf(false) }
-    val displayDates = if (availableDates.isEmpty()) listOf(state.selectedDateKey) else availableDates
+    val displayDates = if (availableDates.isEmpty()) listOf(uiState.selectedDateKey) else availableDates
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // トップバー
         TopAppBar(
             title = { Text("CamyuNews") },
             actions = {
@@ -45,13 +46,19 @@ fun HomeScreen(
                 IconButton(onClick = { showCalendar = true }) {
                     Icon(Icons.Default.CalendarMonth, contentDescription = "カレンダー")
                 }
+                IconButton(onClick = { viewModel.triggerRefresh() }) {
+                    Icon(Icons.Default.Refresh, contentDescription = "更新")
+                }
             }
         )
 
-        // キーワードフィルタバー
+        if (isLoading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
         if (showKeywordFilter) {
             OutlinedTextField(
-                value = state.keywordFilter,
+                value = uiState.keywordFilter,
                 onValueChange = viewModel::setKeywordFilter,
                 placeholder = { Text("キーワードで絞り込み") },
                 modifier = Modifier
@@ -59,7 +66,7 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 singleLine = true,
                 trailingIcon = {
-                    if (state.keywordFilter.isNotEmpty()) {
+                    if (uiState.keywordFilter.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setKeywordFilter("") }) {
                             Icon(Icons.Default.Close, contentDescription = "クリア")
                         }
@@ -68,62 +75,57 @@ fun HomeScreen(
             )
         }
 
-        // 日付タブ
-        val displayDates = if (availableDates.isEmpty()) listOf(state.selectedDateKey) else availableDates
         ScrollableTabRow(
-            selectedTabIndex = displayDates.indexOfFirst { it == state.selectedDateKey }.coerceAtLeast(0),
+            selectedTabIndex = displayDates.indexOfFirst { it == uiState.selectedDateKey }.coerceAtLeast(0),
             edgePadding = 0.dp
         ) {
             displayDates.forEach { dateKey ->
                 Tab(
-                    selected = dateKey == state.selectedDateKey,
+                    selected = dateKey == uiState.selectedDateKey,
                     onClick = { viewModel.selectDate(dateKey) },
                     text = { Text(dateKeyToLocalDate(dateKey).toDisplayLabel()) }
                 )
             }
         }
 
-        // カテゴリタブ
-        TabRow(selectedTabIndex = if (state.selectedCategory == "ai") 0 else 1) {
+        TabRow(selectedTabIndex = if (uiState.selectedCategory == "ai") 0 else 1) {
             Tab(
-                selected = state.selectedCategory == "ai",
+                selected = uiState.selectedCategory == "ai",
                 onClick = { viewModel.selectCategory("ai") },
                 text = { Text("AI") }
             )
             Tab(
-                selected = state.selectedCategory == "security",
+                selected = uiState.selectedCategory == "security",
                 onClick = { viewModel.selectCategory("security") },
                 text = { Text("セキュリティ") }
             )
         }
 
-        // サブジャンルチップ
-        val subCategories = SubCategory.forCategory(state.selectedCategory)
+        val subCategories = SubCategory.forCategory(uiState.selectedCategory)
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
                 FilterChip(
-                    selected = state.selectedSubCategory == null,
+                    selected = uiState.selectedSubCategory == null,
                     onClick = { viewModel.selectSubCategory(null) },
                     label = { Text("すべて") }
                 )
             }
             items(subCategories) { subCat ->
                 FilterChip(
-                    selected = state.selectedSubCategory == subCat.code,
+                    selected = uiState.selectedSubCategory == subCat.code,
                     onClick = { viewModel.selectSubCategory(subCat.code) },
                     label = { Text(subCat.displayName) }
                 )
             }
         }
 
-        // 記事一覧
         if (articles.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "記事がありません",
+                    text = if (isLoading) "ニュースを取得中..." else "記事がありません",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

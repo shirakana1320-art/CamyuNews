@@ -1,5 +1,7 @@
 package com.camyuran.camyunews.presentation.home
 
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.camyuran.camyunews.domain.model.Article
 import com.camyuran.camyunews.domain.repository.ArticleRepository
 import io.mockk.every
@@ -21,6 +23,7 @@ class HomeViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var viewModel: HomeViewModel
     private val articleRepository = mockk<ArticleRepository>()
+    private val workManager = mockk<WorkManager>(relaxed = true)
 
     private fun sampleArticle(id: String, category: String, subCategory: String) = Article(
         id = id,
@@ -46,7 +49,8 @@ class HomeViewModelTest {
                 flowOf(listOf(sampleArticle("1", "ai", "llm")))
         every { articleRepository.getArticlesByDateCategoryAndSubCategory(any(), any(), any()) } returns
                 flowOf(emptyList())
-        viewModel = HomeViewModel(articleRepository)
+        every { workManager.getWorkInfosByTagFlow(any()) } returns flowOf(emptyList<WorkInfo>())
+        viewModel = HomeViewModel(articleRepository, workManager)
     }
 
     @After
@@ -59,14 +63,13 @@ class HomeViewModelTest {
         every { articleRepository.getArticlesByDateAndCategory(any(), "security") } returns
                 flowOf(listOf(sampleArticle("2", "security", "cve")))
 
-        // SharingStarted.WhileSubscribed のため、articles を収集するコレクタを起動してから操作する
         val collectJob = launch { viewModel.articles.collect {} }
 
         viewModel.selectCategory("security")
         advanceUntilIdle()
 
-        assertEquals("security", viewModel.getCurrentState().selectedCategory)
-        assertNull(viewModel.getCurrentState().selectedSubCategory)
+        assertEquals("security", viewModel.uiState.value.selectedCategory)
+        assertNull(viewModel.uiState.value.selectedSubCategory)
         verify { articleRepository.getArticlesByDateAndCategory(any(), "security") }
 
         collectJob.cancel()
@@ -74,13 +77,12 @@ class HomeViewModelTest {
 
     @Test
     fun `サブカテゴリ選択で正しいクエリが実行される`() = runTest {
-        // SharingStarted.WhileSubscribed のため、articles を収集するコレクタを起動してから操作する
         val collectJob = launch { viewModel.articles.collect {} }
 
         viewModel.selectSubCategory("llm")
         advanceUntilIdle()
 
-        assertEquals("llm", viewModel.getCurrentState().selectedSubCategory)
+        assertEquals("llm", viewModel.uiState.value.selectedSubCategory)
         verify { articleRepository.getArticlesByDateCategoryAndSubCategory(any(), "ai", "llm") }
 
         collectJob.cancel()
@@ -92,7 +94,7 @@ class HomeViewModelTest {
         viewModel.selectCategory("security")
         advanceUntilIdle()
 
-        assertNull(viewModel.getCurrentState().selectedSubCategory)
+        assertNull(viewModel.uiState.value.selectedSubCategory)
     }
 
     @Test
@@ -103,6 +105,6 @@ class HomeViewModelTest {
         viewModel.selectDate("2026-05-01")
         advanceUntilIdle()
 
-        assertEquals("2026-05-01", viewModel.getCurrentState().selectedDateKey)
+        assertEquals("2026-05-01", viewModel.uiState.value.selectedDateKey)
     }
 }
