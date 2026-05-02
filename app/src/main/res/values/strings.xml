@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CamyuNews</string>
+    <string name="nav_home">ホーム</string>
+    <string name="nav_favorites">お気に入り</string>
+    <string name="nav_search">検索</string>
+    <string name="nav_settings">設定</string>
+    <string name="notification_channel_name">ニュース更新</string>
+    <string name="notification_channel_desc">AIとセキュリティの最新ニュースをお知らせします</string>
+    <string name="notification_title">今日のニュースが届きました</string>
+    <string name="widget_no_articles">記事がありません</string>
+</resources>

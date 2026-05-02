@@ -1,0 +1,37 @@
+# Android Studio
+*.iml
+.gradle/
+.idea/
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build/
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+
+# Kotlin
+*.class
+
+# Build outputs
+app/build/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (if used)
+google-services.json
+
+# Secrets
+.env
+.env.local
+
+# Kotlin compiler sessions
+.kotlin/
+
+# Windows crash dumps
+*.stackdump
