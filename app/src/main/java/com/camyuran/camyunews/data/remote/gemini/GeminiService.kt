@@ -2,7 +2,6 @@ package com.camyuran.camyunews.data.remote.gemini
 
 import com.camyuran.camyunews.data.remote.rss.RawArticle
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.RequestOptions
 import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.TimeoutCancellationException
@@ -38,12 +37,12 @@ class GeminiService @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun createModel(apiKey: String): GenerativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-2.0-flash",
         apiKey = apiKey,
         generationConfig = generationConfig {
             temperature = 0.3f
-        },
-        requestOptions = RequestOptions(apiVersion = "v1")
+            responseMimeType = "application/json"
+        }
     )
 
     suspend fun testConnection(): GeminiError? {
@@ -93,13 +92,22 @@ class GeminiService @Inject constructor(
     }
 
     private fun classifyException(e: Exception): GeminiError {
-        val msg = e.message ?: ""
+        val msg = buildString {
+            var ex: Throwable? = e
+            while (ex != null) {
+                if (isNotEmpty()) append(" | ")
+                append(ex.message ?: ex.javaClass.simpleName)
+                ex = ex.cause
+            }
+        }
         return when {
             msg.contains("429") || msg.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ->
                 GeminiError.RateLimitExceeded
             msg.contains("API_KEY_INVALID", ignoreCase = true) ->
                 GeminiError.ApiKeyMissing
-            else -> GeminiError.Unknown(msg)
+            msg.contains("NOT_FOUND", ignoreCase = true) || msg.contains("404") ->
+                GeminiError.Unknown("モデルが見つかりません（APIキーでこのモデルが有効か確認してください）")
+            else -> GeminiError.Unknown(msg.take(300))
         }
     }
 
