@@ -61,6 +61,11 @@ class NewsFetchWorker @AssistedInject constructor(
                 .atStartOfDay(TOKYO).toInstant().toEpochMilli()
             val pruned = articleDao.pruneOldArticles(cutoff)
 
+            // Step 1.5: 今日フェッチされた pubDate なし記事の dateKey を今日の日付に修正
+            val todayKey = LocalDate.now(TOKYO).toDateKey()
+            val todayStartMs = LocalDate.now(TOKYO).atStartOfDay(TOKYO).toInstant().toEpochMilli()
+            articleDao.fixInvalidDateKeys(todayKey, todayStartMs)
+
             // Step 2: RSS 並行取得
             val rawArticles = fetchAllFeeds()
             if (rawArticles.isEmpty()) return Result.success()

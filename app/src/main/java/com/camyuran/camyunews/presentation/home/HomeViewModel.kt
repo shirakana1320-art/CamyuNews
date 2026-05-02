@@ -15,6 +15,7 @@ import com.camyuran.camyunews.util.todayDateKey
 import com.camyuran.camyunews.worker.NewsFetchWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,16 @@ class HomeViewModel @Inject constructor(
 
     val availableDates: StateFlow<List<String>> = articleRepository.getAvailableDates()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            availableDates.collect { dates ->
+                if (dates.isNotEmpty() && !dates.contains(_uiState.value.selectedDateKey)) {
+                    _uiState.update { it.copy(selectedDateKey = dates.first()) }
+                }
+            }
+        }
+    }
 
     val isLoading: StateFlow<Boolean> = workManager
         .getWorkInfosByTagFlow(NewsFetchWorker.TAG_FETCH)

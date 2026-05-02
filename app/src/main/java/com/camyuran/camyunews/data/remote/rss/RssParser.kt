@@ -91,7 +91,7 @@ class RssParser @Inject constructor(
                                     RawArticle(
                                         title = title,
                                         url = link,
-                                        publishedAt = pubDate,
+                                        publishedAt = if (pubDate == 0L) System.currentTimeMillis() else pubDate,
                                         sourceName = source.name,
                                         defaultCategory = source.defaultCategory,
                                         defaultSubCategory = source.defaultSubCategory

@@ -73,4 +73,8 @@ interface ArticleDao {
     /** URLのハッシュ一覧を返す（重複チェック用） */
     @Query("SELECT id FROM articles WHERE fetchedAt >= :since")
     suspend fun getRecentArticleIds(since: Long): List<String>
+
+    /** pubDate なし記事（dateKey=1970-01-01）のうち今日フェッチされたものを正しい日付キーに修正 */
+    @Query("UPDATE articles SET dateKey = :newDateKey WHERE dateKey = '1970-01-01' AND fetchedAt >= :since")
+    suspend fun fixInvalidDateKeys(newDateKey: String, since: Long): Int
 }

@@ -102,12 +102,50 @@ class HomeViewModelTest {
 
     @Test
     fun `日付選択が正しく更新される`() = runTest {
+        // availableDates に "2026-05-01" を含めることで、
+        // init ブロックの自動補正（dates に含まれない場合は最新日に戻す）が発動しないようにする
+        every { articleRepository.getAvailableDates() } returns
+                flowOf(listOf("2026-05-03", "2026-05-01"))
         every { articleRepository.getArticlesByDateAndCategory("2026-05-01", "ai") } returns
                 flowOf(emptyList())
+
+        // 自動補正ロジックが availableDates を購読するため、先に collect を開始してから selectDate を呼ぶ
+        val collectJob = launch { viewModel.availableDates.collect {} }
+        advanceUntilIdle()
 
         viewModel.selectDate("2026-05-01")
         advanceUntilIdle()
 
         assertEquals("2026-05-01", viewModel.uiState.value.selectedDateKey)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `availableDatesに選択日が含まれない場合は最新日付に自動補正される`() = runTest {
+        every { articleRepository.getAvailableDates() } returns flowOf(listOf("2026-05-01", "2026-04-30"))
+        every { articleRepository.getArticlesByDateAndCategory(any(), any()) } returns flowOf(emptyList())
+
+        val testViewModel = HomeViewModel(articleRepository, workManager, apiKeyProvider)
+        val collectJob = launch { testViewModel.availableDates.collect {} }
+        advanceUntilIdle()
+
+        assertEquals("2026-05-01", testViewModel.uiState.value.selectedDateKey)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `availableDatesに選択日が含まれる場合は最新日付に変更されない`() = runTest {
+        // 2日分の日付がある場合に、古い方を選択していても最新日に勝手に変わらないことを確認
+        every { articleRepository.getAvailableDates() } returns flowOf(listOf("2026-05-03", "2026-05-02"))
+        every { articleRepository.getArticlesByDateAndCategory(any(), any()) } returns flowOf(emptyList())
+
+        val testViewModel = HomeViewModel(articleRepository, workManager, apiKeyProvider)
+        testViewModel.selectDate("2026-05-02")  // 最新ではない日を明示的に選択
+        val collectJob = launch { testViewModel.availableDates.collect {} }
+        advanceUntilIdle()
+
+        // "2026-05-02" は availableDates に含まれるので "2026-05-03" に変更されない
+        assertEquals("2026-05-02", testViewModel.uiState.value.selectedDateKey)
+        collectJob.cancel()
     }
 }
