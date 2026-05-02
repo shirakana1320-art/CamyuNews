@@ -37,7 +37,7 @@ class GeminiService @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun createModel(apiKey: String): GenerativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-2.0-flash-lite",
         apiKey = apiKey,
         generationConfig = generationConfig {
             temperature = 0.3f
