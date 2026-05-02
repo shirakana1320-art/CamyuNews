@@ -42,7 +42,6 @@ class GeminiService @Inject constructor(
         apiKey = apiKey,
         generationConfig = generationConfig {
             temperature = 0.3f
-            responseMimeType = "application/json"
         },
         requestOptions = RequestOptions(apiVersion = "v1")
     )
@@ -74,11 +73,23 @@ class GeminiService @Inject constructor(
             val text = response.text ?: return SummarizeResult.Failure(
                 GeminiError.Unknown("空のレスポンス")
             )
-            val result = json.decodeFromString<GeminiSummaryResult>(text.trim())
+            val result = json.decodeFromString<GeminiSummaryResult>(extractJson(text))
             SummarizeResult.Success(result)
         } catch (e: Exception) {
             SummarizeResult.Failure(classifyException(e))
         }
+    }
+
+    private fun extractJson(text: String): String {
+        val trimmed = text.trim()
+        // ```json ... ``` または ``` ... ``` を除去
+        val fenceStripped = Regex("```(?:json)?\\s*(\\{[\\s\\S]*?\\})\\s*```").find(trimmed)
+            ?.groupValues?.get(1)
+        if (fenceStripped != null) return fenceStripped
+        // フェンスなしの場合は { から } までを抽出
+        val start = trimmed.indexOf('{')
+        val end = trimmed.lastIndexOf('}')
+        return if (start != -1 && end > start) trimmed.substring(start, end + 1) else trimmed
     }
 
     private fun classifyException(e: Exception): GeminiError {
