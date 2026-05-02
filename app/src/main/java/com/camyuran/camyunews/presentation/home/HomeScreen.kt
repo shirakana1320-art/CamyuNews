@@ -15,7 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.camyuran.camyunews.domain.model.SubCategory
 import com.camyuran.camyunews.presentation.shared.ArticleCard
 import com.camyuran.camyunews.presentation.shared.DatePickerDialog
@@ -32,9 +35,18 @@ fun HomeScreen(
     val articles by viewModel.articles.collectAsStateWithLifecycle()
     val availableDates by viewModel.availableDates.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val hasGeminiKey by viewModel.hasGeminiKey.collectAsStateWithLifecycle()
     var showCalendar by remember { mutableStateOf(false) }
     var showKeywordFilter by remember { mutableStateOf(false) }
     val displayDates = if (availableDates.isEmpty()) listOf(uiState.selectedDateKey) else availableDates
+
+    // 設定画面から戻ったときにAPIキー状態を再チェック
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshApiKeyStatus()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -54,6 +66,20 @@ fun HomeScreen(
 
         if (isLoading) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
+        if (!hasGeminiKey) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Gemini APIキー未設定 — 設定画面から登録すると記事の要約・翻訳が有効になります",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
         }
 
         if (showKeywordFilter) {

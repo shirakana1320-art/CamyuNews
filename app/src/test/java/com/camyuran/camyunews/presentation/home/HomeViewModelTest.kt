@@ -2,6 +2,7 @@ package com.camyuran.camyunews.presentation.home
 
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.camyuran.camyunews.data.remote.gemini.ApiKeyProvider
 import com.camyuran.camyunews.domain.model.Article
 import com.camyuran.camyunews.domain.repository.ArticleRepository
 import io.mockk.every
@@ -24,6 +25,7 @@ class HomeViewModelTest {
     private lateinit var viewModel: HomeViewModel
     private val articleRepository = mockk<ArticleRepository>()
     private val workManager = mockk<WorkManager>(relaxed = true)
+    private val apiKeyProvider = mockk<ApiKeyProvider>()
 
     private fun sampleArticle(id: String, category: String, subCategory: String) = Article(
         id = id,
@@ -50,7 +52,8 @@ class HomeViewModelTest {
         every { articleRepository.getArticlesByDateCategoryAndSubCategory(any(), any(), any()) } returns
                 flowOf(emptyList())
         every { workManager.getWorkInfosByTagFlow(any()) } returns flowOf(emptyList<WorkInfo>())
-        viewModel = HomeViewModel(articleRepository, workManager)
+        every { apiKeyProvider.hasApiKey() } returns true
+        viewModel = HomeViewModel(articleRepository, workManager, apiKeyProvider)
     }
 
     @After

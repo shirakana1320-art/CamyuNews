@@ -10,7 +10,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.camyuran.camyunews.presentation.AppNavigation
@@ -40,12 +42,24 @@ class MainActivity : ComponentActivity() {
         }
 
         scheduleNewsFetch()
+        triggerStartupFetch()
 
         setContent {
             CamyuNewsTheme {
                 AppNavigation()
             }
         }
+    }
+
+    private fun triggerStartupFetch() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val request = OneTimeWorkRequestBuilder<NewsFetchWorker>()
+            .setConstraints(constraints)
+            .addTag(NewsFetchWorker.TAG_FETCH)
+            .build()
+        workManager.enqueueUniqueWork("StartupFetch", ExistingWorkPolicy.KEEP, request)
     }
 
     private fun scheduleNewsFetch() {

@@ -72,6 +72,7 @@ class SettingsViewModel @Inject constructor(
                 saveSuccess = true,
                 hasApiKey = apiKeyProvider.hasApiKey()
             )
+            manualFetch()
         }
     }
 
@@ -93,7 +94,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun manualFetch() {
-        val request = OneTimeWorkRequestBuilder<NewsFetchWorker>().build()
+        val request = OneTimeWorkRequestBuilder<NewsFetchWorker>()
+            .addTag(NewsFetchWorker.TAG_FETCH)
+            .build()
         workManager.enqueueUniqueWork(
             "ManualFetch",
             ExistingWorkPolicy.REPLACE,

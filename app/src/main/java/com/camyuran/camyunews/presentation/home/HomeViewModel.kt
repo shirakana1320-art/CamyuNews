@@ -2,10 +2,13 @@ package com.camyuran.camyunews.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.camyuran.camyunews.data.remote.gemini.ApiKeyProvider
 import com.camyuran.camyunews.domain.model.Article
 import com.camyuran.camyunews.domain.repository.ArticleRepository
 import com.camyuran.camyunews.util.todayDateKey
@@ -32,17 +35,21 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    private val apiKeyProvider: ApiKeyProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val _hasGeminiKey = MutableStateFlow(apiKeyProvider.hasApiKey())
+    val hasGeminiKey: StateFlow<Boolean> = _hasGeminiKey.asStateFlow()
+
     val availableDates: StateFlow<List<String>> = articleRepository.getAvailableDates()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val isLoading: StateFlow<Boolean> = workManager
-        .getWorkInfosByTagFlow(MANUAL_FETCH_TAG)
+        .getWorkInfosByTagFlow(NewsFetchWorker.TAG_FETCH)
         .map { infos ->
             infos.any { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
         }
@@ -78,15 +85,22 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(selectedSubCategory = subCategory) }
     fun setKeywordFilter(keyword: String) = _uiState.update { it.copy(keywordFilter = keyword) }
 
+    fun refreshApiKeyStatus() {
+        _hasGeminiKey.value = apiKeyProvider.hasApiKey()
+    }
+
     fun triggerRefresh() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
         val request = OneTimeWorkRequestBuilder<NewsFetchWorker>()
-            .addTag(MANUAL_FETCH_TAG)
+            .addTag(NewsFetchWorker.TAG_FETCH)
+            .setConstraints(constraints)
             .build()
         workManager.enqueueUniqueWork(MANUAL_FETCH_WORK_NAME, ExistingWorkPolicy.KEEP, request)
     }
 
     companion object {
-        private const val MANUAL_FETCH_TAG = "news_fetch_manual"
         private const val MANUAL_FETCH_WORK_NAME = "NewsFetchWorker_manual"
     }
 }

@@ -47,6 +47,7 @@ class NewsFetchWorker @AssistedInject constructor(
 
     companion object {
         const val WORK_NAME = "NewsFetchWorker"
+        const val TAG_FETCH = "news_fetch"
         private const val CHANNEL_ID = "news_updates"
         private const val NOTIFICATION_ID = 1001
         private const val JACCARD_THRESHOLD = 0.5
