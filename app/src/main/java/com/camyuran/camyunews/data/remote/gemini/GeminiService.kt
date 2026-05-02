@@ -4,6 +4,8 @@ import com.camyuran.camyunews.data.remote.rss.RawArticle
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.serialization.Serializable
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,6 +45,22 @@ class GeminiService @Inject constructor(
         }
     )
 
+    suspend fun testConnection(): GeminiError? {
+        val apiKey = apiKeyProvider.getApiKey()
+            ?: return GeminiError.ApiKeyMissing
+        return try {
+            withTimeout(10_000) {
+                val model = createModel(apiKey)
+                model.generateContent("ping")
+            }
+            null
+        } catch (e: TimeoutCancellationException) {
+            GeminiError.Unknown("タイムアウト（10秒）: Gemini サーバーに到達できませんでした")
+        } catch (e: Exception) {
+            classifyException(e)
+        }
+    }
+
     suspend fun summarizeArticleGroup(articles: List<RawArticle>): SummarizeResult {
         val apiKey = apiKeyProvider.getApiKey()
             ?: return SummarizeResult.Failure(GeminiError.ApiKeyMissing)
@@ -57,12 +75,18 @@ class GeminiService @Inject constructor(
             val result = json.decodeFromString<GeminiSummaryResult>(text.trim())
             SummarizeResult.Success(result)
         } catch (e: Exception) {
-            val msg = e.message ?: ""
-            if (msg.contains("429") || msg.contains("RESOURCE_EXHAUSTED", ignoreCase = true)) {
-                SummarizeResult.Failure(GeminiError.RateLimitExceeded)
-            } else {
-                SummarizeResult.Failure(GeminiError.Unknown(msg))
-            }
+            SummarizeResult.Failure(classifyException(e))
+        }
+    }
+
+    private fun classifyException(e: Exception): GeminiError {
+        val msg = e.message ?: ""
+        return when {
+            msg.contains("429") || msg.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ->
+                GeminiError.RateLimitExceeded
+            msg.contains("API_KEY_INVALID", ignoreCase = true) ->
+                GeminiError.ApiKeyMissing
+            else -> GeminiError.Unknown(msg)
         }
     }
 

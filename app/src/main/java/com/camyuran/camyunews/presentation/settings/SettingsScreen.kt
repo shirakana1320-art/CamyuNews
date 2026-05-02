@@ -64,6 +64,55 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         Text("削除", color = MaterialTheme.colorScheme.error)
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = viewModel::testGeminiConnection,
+                        enabled = !uiState.isTestingConnection,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (uiState.isTestingConnection) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("確認中...")
+                        } else {
+                            Text("接続テスト")
+                        }
+                    }
+                }
+                uiState.connectionTestResult?.let { result ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val isSuccess = result.startsWith("接続OK")
+                    Surface(
+                        color = if (isSuccess) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = result,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSuccess) MaterialTheme.colorScheme.onSecondaryContainer
+                                        else MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = viewModel::dismissConnectionTestResult,
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "閉じる",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             } else {
                 OutlinedTextField(
                     value = apiKeyInput,

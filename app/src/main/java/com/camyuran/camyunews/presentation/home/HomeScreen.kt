@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -39,6 +40,8 @@ fun HomeScreen(
     var showCalendar by remember { mutableStateOf(false) }
     var showKeywordFilter by remember { mutableStateOf(false) }
     val displayDates = if (availableDates.isEmpty()) listOf(uiState.selectedDateKey) else availableDates
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     // 設定画面から戻ったときにAPIキー状態を再チェック
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -48,6 +51,20 @@ fun HomeScreen(
         }
     }
 
+    // Gemini エラーをスナックバーで表示
+    LaunchedEffect(uiState.fetchError) {
+        uiState.fetchError?.let { error ->
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = error,
+                    duration = SnackbarDuration.Long
+                )
+            }
+            viewModel.clearFetchError()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("CamyuNews") },
@@ -167,6 +184,12 @@ fun HomeScreen(
             }
         }
     }
+
+    SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    } // Box end
 
     if (showCalendar) {
         DatePickerDialog(

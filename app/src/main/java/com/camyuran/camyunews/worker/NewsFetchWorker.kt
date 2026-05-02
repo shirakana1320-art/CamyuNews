@@ -30,6 +30,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import androidx.work.workDataOf
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.security.MessageDigest
@@ -47,7 +48,11 @@ class NewsFetchWorker @AssistedInject constructor(
 
     companion object {
         const val WORK_NAME = "NewsFetchWorker"
+        const val WORK_NAME_MANUAL = "NewsFetchWorker_manual"
         const val TAG_FETCH = "news_fetch"
+        const val KEY_ERROR_TYPE = "error_type"
+        const val KEY_PROCESSED_COUNT = "processed_count"
+        const val KEY_COMPLETED_AT = "completed_at"
         private const val CHANNEL_ID = "news_updates"
         private const val NOTIFICATION_ID = 1001
         private const val JACCARD_THRESHOLD = 0.5
@@ -108,6 +113,7 @@ class NewsFetchWorker @AssistedInject constructor(
 
             // Step 5: Gemini AI 処理
             var rateLimited = false
+            var apiKeyMissing = false
             var processedCount = 0
             val entitiesToInsert = mutableListOf<ArticleEntity>()
 
@@ -147,6 +153,10 @@ class NewsFetchWorker @AssistedInject constructor(
                                 rateLimited = true
                                 entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                             }
+                            is GeminiError.ApiKeyMissing -> {
+                                apiKeyMissing = true
+                                entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
+                            }
                             else -> {
                                 // 個別エラーはサマリーなしで保存（翌日再処理）
                                 entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
@@ -181,6 +191,7 @@ class NewsFetchWorker @AssistedInject constructor(
                         }
                         is SummarizeResult.Failure -> {
                             if (result.error is GeminiError.RateLimitExceeded) rateLimited = true
+                            if (result.error is GeminiError.ApiKeyMissing) apiKeyMissing = true
                         }
                     }
                 }
@@ -197,7 +208,18 @@ class NewsFetchWorker @AssistedInject constructor(
             // Step 8: Widget 更新
             updateWidget()
 
-            Result.success()
+            val errorType = when {
+                apiKeyMissing -> "api_key_missing"
+                rateLimited -> "rate_limit"
+                else -> "none"
+            }
+            Result.success(
+                workDataOf(
+                    KEY_ERROR_TYPE to errorType,
+                    KEY_PROCESSED_COUNT to processedCount,
+                    KEY_COMPLETED_AT to System.currentTimeMillis()
+                )
+            )
         } catch (e: Exception) {
             if (runAttemptCount < 2) Result.retry() else Result.failure()
         }

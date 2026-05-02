@@ -121,6 +121,15 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `clearFetchError でfetchErrorがnullになる`() = runTest {
+        viewModel.setFetchErrorForTest("テストエラー")
+        assertEquals("テストエラー", viewModel.uiState.value.fetchError)
+
+        viewModel.clearFetchError()
+        assertNull(viewModel.uiState.value.fetchError)
+    }
+
+    @Test
     fun `availableDatesに選択日が含まれない場合は最新日付に自動補正される`() = runTest {
         every { articleRepository.getAvailableDates() } returns flowOf(listOf("2026-05-01", "2026-04-30"))
         every { articleRepository.getArticlesByDateAndCategory(any(), any()) } returns flowOf(emptyList())

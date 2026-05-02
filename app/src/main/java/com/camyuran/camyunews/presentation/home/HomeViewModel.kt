@@ -1,5 +1,6 @@
 package com.camyuran.camyunews.presentation.home
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
@@ -24,13 +25,15 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import java.util.UUID
 import javax.inject.Inject
 
 data class HomeUiState(
     val selectedDateKey: String = todayDateKey(),
     val selectedCategory: String = "ai",
     val selectedSubCategory: String? = null,
-    val keywordFilter: String = ""
+    val keywordFilter: String = "",
+    val fetchError: String? = null
 )
 
 @HiltViewModel
@@ -39,6 +42,8 @@ class HomeViewModel @Inject constructor(
     private val workManager: WorkManager,
     private val apiKeyProvider: ApiKeyProvider
 ) : ViewModel() {
+
+    private val viewModelCreatedAt = System.currentTimeMillis()
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -49,6 +54,17 @@ class HomeViewModel @Inject constructor(
     val availableDates: StateFlow<List<String>> = articleRepository.getAvailableDates()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // 単一購読で isLoading とエラー観測の両方をまかなう
+    private val _workInfos: StateFlow<List<WorkInfo>> = workManager
+        .getWorkInfosByTagFlow(NewsFetchWorker.TAG_FETCH)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val isLoading: StateFlow<Boolean> = _workInfos
+        .map { infos ->
+            infos.any { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     init {
         viewModelScope.launch {
             availableDates.collect { dates ->
@@ -57,14 +73,25 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    val isLoading: StateFlow<Boolean> = workManager
-        .getWorkInfosByTagFlow(NewsFetchWorker.TAG_FETCH)
-        .map { infos ->
-            infos.any { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
+        viewModelScope.launch {
+            val reportedIds = mutableSetOf<UUID>()
+            _workInfos.collect { infos ->
+                infos
+                    .filter { info ->
+                        info.state == WorkInfo.State.SUCCEEDED
+                            && info.id !in reportedIds
+                            && info.outputData.getLong(NewsFetchWorker.KEY_COMPLETED_AT, 0L) >= viewModelCreatedAt
+                    }
+                    .forEach { info ->
+                        reportedIds.add(info.id)
+                        buildFetchErrorMessage(
+                            info.outputData.getString(NewsFetchWorker.KEY_ERROR_TYPE),
+                            info.outputData.getInt(NewsFetchWorker.KEY_PROCESSED_COUNT, 0)
+                        )?.let { msg -> _uiState.update { it.copy(fetchError = msg) } }
+                    }
+            }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val articles: StateFlow<List<Article>> = _uiState
@@ -100,6 +127,8 @@ class HomeViewModel @Inject constructor(
         _hasGeminiKey.value = apiKeyProvider.hasApiKey()
     }
 
+    fun clearFetchError() = _uiState.update { it.copy(fetchError = null) }
+
     fun triggerRefresh() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -108,10 +137,20 @@ class HomeViewModel @Inject constructor(
             .addTag(NewsFetchWorker.TAG_FETCH)
             .setConstraints(constraints)
             .build()
-        workManager.enqueueUniqueWork(MANUAL_FETCH_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+        workManager.enqueueUniqueWork(NewsFetchWorker.WORK_NAME_MANUAL, ExistingWorkPolicy.KEEP, request)
     }
 
-    companion object {
-        private const val MANUAL_FETCH_WORK_NAME = "NewsFetchWorker_manual"
-    }
+    @VisibleForTesting
+    internal fun setFetchErrorForTest(msg: String) = _uiState.update { it.copy(fetchError = msg) }
+
+    private fun buildFetchErrorMessage(errorType: String?, processedCount: Int): String? =
+        when (errorType) {
+            "api_key_missing" -> "Gemini APIキーが無効です。設定画面で正しいキーを入力してください"
+            "rate_limit" -> if (processedCount == 0)
+                "APIのレートリミットに達しました。しばらく経ってから更新してください"
+            else
+                "一部でレートリミットが発生しました（処理済み: ${processedCount}件）"
+            "unknown" -> if (processedCount == 0) "記事の要約に失敗しました。接続状態を確認してください" else null
+            else -> null
+        }
 }
