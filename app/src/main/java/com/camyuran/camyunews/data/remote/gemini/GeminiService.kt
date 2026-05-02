@@ -2,6 +2,7 @@ package com.camyuran.camyunews.data.remote.gemini
 
 import com.camyuran.camyunews.data.remote.rss.RawArticle
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.RequestOptions
 import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.serialization.Serializable
 import kotlinx.coroutines.TimeoutCancellationException
@@ -37,12 +38,13 @@ class GeminiService @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun createModel(apiKey: String): GenerativeModel = GenerativeModel(
-        modelName = "gemini-2.0-flash-lite",
+        modelName = "gemini-1.5-flash",
         apiKey = apiKey,
         generationConfig = generationConfig {
             temperature = 0.3f
             responseMimeType = "application/json"
-        }
+        },
+        requestOptions = RequestOptions(apiVersion = "v1")
     )
 
     suspend fun testConnection(): GeminiError? {
