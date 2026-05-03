@@ -8,7 +8,16 @@ import com.camyuran.camyunews.domain.repository.FavoriteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 enum class SearchTarget { ALL, FAVORITES }
@@ -19,13 +28,16 @@ class SearchViewModel @Inject constructor(
     private val favoriteRepository: FavoriteRepository
 ) : ViewModel() {
 
-    val query = MutableStateFlow("")
-    val searchTarget = MutableStateFlow(SearchTarget.ALL)
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    private val _searchTarget = MutableStateFlow(SearchTarget.ALL)
+    val searchTarget: StateFlow<SearchTarget> = _searchTarget.asStateFlow()
 
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val results: StateFlow<List<Article>> = combine(
-        query.debounce(300).distinctUntilChanged(),
-        searchTarget
+        _query.debounce(300).distinctUntilChanged(),
+        _searchTarget
     ) { q, target -> q to target }
         .flatMapLatest { (q, target) ->
             if (q.isBlank()) flowOf(emptyList())
@@ -36,6 +48,6 @@ class SearchViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun setQuery(q: String) { query.value = q }
-    fun setTarget(target: SearchTarget) { searchTarget.value = target }
+    fun setQuery(q: String) { _query.value = q }
+    fun setTarget(target: SearchTarget) { _searchTarget.value = target }
 }

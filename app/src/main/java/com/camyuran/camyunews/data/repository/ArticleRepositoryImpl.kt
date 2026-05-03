@@ -50,9 +50,15 @@ class ArticleRepositoryImpl @Inject constructor(
     override suspend fun pruneOldArticles(cutoffMs: Long): Int =
         articleDao.pruneOldArticles(cutoffMs)
 
+    override fun getRecentArticlesBySubCategory(
+        category: String, subCategory: String, fromDateKey: String, excludeId: String, limit: Int
+    ): Flow<List<Article>> =
+        articleDao.getRecentArticlesBySubCategory(category, subCategory, fromDateKey, excludeId, limit)
+            .withFavoriteStatus()
+
     private fun Flow<List<com.camyuran.camyunews.data.local.entity.ArticleEntity>>.withFavoriteStatus(): Flow<List<Article>> =
-        combine(favoriteDao.getAllFavorites()) { articles, favorites ->
-            val favoriteIds = favorites.map { it.articleId }.toSet()
-            articles.map { it.toDomain(isFavorite = it.id in favoriteIds) }
+        combine(favoriteDao.getFavoriteIdsFlow()) { articles, favoriteIds ->
+            val favoriteIdSet = favoriteIds.toSet()
+            articles.map { it.toDomain(isFavorite = it.id in favoriteIdSet) }
         }
 }

@@ -24,6 +24,7 @@ fun FavoritesScreen(
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val articles by viewModel.articles.collectAsStateWithLifecycle()
     val isShowingAll by viewModel.isShowingAll.collectAsStateWithLifecycle()
+    val selectedFolderId by viewModel.selectedFolderId.collectAsStateWithLifecycle()
     var showCreateFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
     var showRenameDialog by remember { mutableStateOf<Long?>(null) }
@@ -51,7 +52,7 @@ fun FavoritesScreen(
                 )
                 NavigationDrawerItem(
                     label = { Text("未分類") },
-                    selected = false,
+                    selected = !isShowingAll && selectedFolderId == null,
                     onClick = { viewModel.selectFolder(null) },
                     icon = { Icon(Icons.Default.Inbox, contentDescription = null) },
                     modifier = Modifier.padding(horizontal = 8.dp)
@@ -60,7 +61,7 @@ fun FavoritesScreen(
                 folders.forEach { folder ->
                     NavigationDrawerItem(
                         label = { Text(folder.name, maxLines = 1) },
-                        selected = false,
+                        selected = !isShowingAll && selectedFolderId == folder.id,
                         onClick = { viewModel.selectFolder(folder.id) },
                         icon = { Icon(Icons.Default.Folder, contentDescription = null) },
                         badge = {

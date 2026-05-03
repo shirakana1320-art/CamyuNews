@@ -34,4 +34,7 @@ interface FavoriteDao {
 
     @Query("SELECT articleId FROM favorites")
     suspend fun getAllFavoriteIds(): List<String>
+
+    @Query("SELECT articleId FROM favorites")
+    fun getFavoriteIdsFlow(): Flow<List<String>>
 }

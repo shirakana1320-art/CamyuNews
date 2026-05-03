@@ -14,13 +14,31 @@ object JaccardSimilarityUtil {
 
     internal fun tokenize(text: String): Set<String> {
         val normalized = text.lowercase().trim()
-        return if (containsJapanese(normalized)) {
-            // 日本語: 文字 bigram
-            normalized.windowed(2).toSet()
-        } else {
-            // 英語: 単語単位
-            normalized.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
+        if (!containsJapanese(normalized)) {
+            return normalized.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
         }
+        // 混在テキスト: 日本語文字はbigram、ASCII単語はword単位に分離してマージ
+        val tokens = mutableSetOf<String>()
+        val segment = StringBuilder()
+        var inJapanese = false
+
+        fun flush() {
+            val s = segment.toString()
+            if (inJapanese) {
+                if (s.length >= 2) tokens.addAll(s.windowed(2))
+            } else {
+                tokens.addAll(s.trim().split(Regex("\\s+")).filter { it.isNotEmpty() })
+            }
+            segment.clear()
+        }
+
+        for (char in normalized) {
+            val isJp = char.code in 0x3000..0x9FFF
+            if (isJp != inJapanese) { flush(); inJapanese = isJp }
+            segment.append(char)
+        }
+        flush()
+        return tokens
     }
 
     private fun containsJapanese(text: String): Boolean =

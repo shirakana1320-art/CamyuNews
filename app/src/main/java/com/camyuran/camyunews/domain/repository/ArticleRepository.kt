@@ -15,4 +15,7 @@ interface ArticleRepository {
     suspend fun getById(id: String): Article?
     suspend fun markAsRead(id: String)
     suspend fun pruneOldArticles(cutoffMs: Long): Int
+    fun getRecentArticlesBySubCategory(
+        category: String, subCategory: String, fromDateKey: String, excludeId: String, limit: Int = 5
+    ): Flow<List<Article>>
 }

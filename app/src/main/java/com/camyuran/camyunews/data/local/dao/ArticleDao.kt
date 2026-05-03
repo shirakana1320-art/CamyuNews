@@ -77,4 +77,17 @@ interface ArticleDao {
     /** pubDate なし記事（dateKey=1970-01-01）のうち今日フェッチされたものを正しい日付キーに修正 */
     @Query("UPDATE articles SET dateKey = :newDateKey WHERE dateKey = '1970-01-01' AND fetchedAt >= :since")
     suspend fun fixInvalidDateKeys(newDateKey: String, since: Long): Int
+
+    /** 同じサブジャンルの直近 N 日以内の記事（自分自身を除く） */
+    @Query("""
+        SELECT * FROM articles
+        WHERE category = :category AND subCategory = :subCategory
+        AND dateKey >= :fromDateKey
+        AND id != :excludeId
+        ORDER BY topicalityScore DESC, fetchedAt DESC
+        LIMIT :limit
+    """)
+    fun getRecentArticlesBySubCategory(
+        category: String, subCategory: String, fromDateKey: String, excludeId: String, limit: Int
+    ): Flow<List<ArticleEntity>>
 }

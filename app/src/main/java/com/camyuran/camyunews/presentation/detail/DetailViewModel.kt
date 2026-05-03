@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.camyuran.camyunews.domain.model.Article
 import com.camyuran.camyunews.domain.repository.ArticleRepository
+import com.camyuran.camyunews.util.dateKeyToLocalDate
+import com.camyuran.camyunews.util.toDateKey
 import com.camyuran.camyunews.domain.repository.FavoriteRepository
 import com.camyuran.camyunews.domain.repository.FolderRepository
 import com.camyuran.camyunews.domain.model.Folder
@@ -52,14 +54,13 @@ class DetailViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(isFavorite = isFav)
                     }
                 }
-                // 関連記事（同サブジャンル・当日）
+                // 関連記事（同サブジャンル・直近7日）
                 launch {
-                    articleRepository.getArticlesByDateCategoryAndSubCategory(
-                        article.dateKey, article.category, article.subCategory
+                    val fromDateKey = dateKeyToLocalDate(article.dateKey).minusDays(7).toDateKey()
+                    articleRepository.getRecentArticlesBySubCategory(
+                        article.category, article.subCategory, fromDateKey, articleId, limit = 5
                     ).collect { related ->
-                        _uiState.value = _uiState.value.copy(
-                            relatedArticles = related.filter { it.id != articleId }.take(5)
-                        )
+                        _uiState.value = _uiState.value.copy(relatedArticles = related)
                     }
                 }
             } else {

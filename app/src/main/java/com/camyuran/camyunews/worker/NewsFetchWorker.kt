@@ -166,13 +166,11 @@ class NewsFetchWorker @AssistedInject constructor(
                 }
             }
 
-            // Step 5.5: summaryJa=null の未処理記事を再処理
+            // Step 5.5: summaryJa=null の未処理記事を再処理（インデックスで対応付け）
             if (!apiKeyMissing && !hadRateLimit && unprocessedEntities.isNotEmpty()) {
-                for (entity in unprocessedEntities) {
+                for ((index, entity) in unprocessedEntities.withIndex()) {
                     if (apiKeyMissing || hadRateLimit) break
-                    val rawForRetry = unprocessedAsRaw.find { it.url == try {
-                        kotlinx.serialization.json.Json.decodeFromString<List<String>>(entity.originalUrls).firstOrNull() ?: ""
-                    } catch (e: Exception) { entity.originalUrls } } ?: continue
+                    val rawForRetry = unprocessedAsRaw.getOrNull(index) ?: continue
 
                     delay(interRequestDelay)
                     when (val result = geminiService.summarizeArticleGroup(listOf(rawForRetry))) {

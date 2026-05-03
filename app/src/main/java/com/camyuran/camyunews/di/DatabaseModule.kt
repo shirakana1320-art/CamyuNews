@@ -20,7 +20,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CamyuNewsDatabase =
-        Room.databaseBuilder(context, CamyuNewsDatabase::class.java, "camyunews.db").build()
+        Room.databaseBuilder(context, CamyuNewsDatabase::class.java, "camyunews.db")
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     fun provideArticleDao(db: CamyuNewsDatabase): ArticleDao = db.articleDao()

@@ -24,6 +24,14 @@ data class RawArticle(
 class RssParser @Inject constructor(
     private val okHttpClient: OkHttpClient
 ) {
+    companion object {
+        private val DATE_FORMATS = listOf(
+            java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", java.util.Locale.ENGLISH),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.ENGLISH),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.ENGLISH),
+            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ENGLISH)
+        )
+    }
 
     fun fetchAndParse(source: RssFeedSource): List<RawArticle> {
         val request = Request.Builder().url(source.url).build()
@@ -119,13 +127,7 @@ class RssParser @Inject constructor(
     }
 
     private fun parseDate(dateStr: String): Long {
-        val formats = listOf(
-            java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", java.util.Locale.ENGLISH),
-            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.ENGLISH),
-            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.ENGLISH),
-            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ENGLISH)
-        )
-        for (fmt in formats) {
+        for (fmt in DATE_FORMATS) {
             try {
                 return fmt.parse(dateStr)?.time ?: continue
             } catch (e: Exception) { /* 次のフォーマットを試す */ }
