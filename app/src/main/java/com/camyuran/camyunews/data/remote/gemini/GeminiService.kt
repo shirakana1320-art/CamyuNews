@@ -37,7 +37,7 @@ class GeminiService @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun createModel(apiKey: String): GenerativeModel = GenerativeModel(
-        modelName = "gemini-2.0-flash",
+        modelName = "gemini-2.0-flash-lite",
         apiKey = apiKey,
         generationConfig = generationConfig {
             temperature = 0.3f
@@ -101,12 +101,14 @@ class GeminiService @Inject constructor(
             }
         }
         return when {
+            msg.contains("limit: 0", ignoreCase = true) || msg.contains("limit:0", ignoreCase = true) ->
+                GeminiError.Unknown("APIキーのクォータが0です。aistudio.google.com で新しいAPIキーを取得してください")
             msg.contains("429") || msg.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ->
                 GeminiError.RateLimitExceeded
             msg.contains("API_KEY_INVALID", ignoreCase = true) ->
                 GeminiError.ApiKeyMissing
             msg.contains("NOT_FOUND", ignoreCase = true) || msg.contains("404") ->
-                GeminiError.Unknown("モデルが見つかりません（APIキーでこのモデルが有効か確認してください）")
+                GeminiError.Unknown("モデルが見つかりません。aistudio.google.com で新しいAPIキーを取得してください")
             else -> GeminiError.Unknown(msg.take(300))
         }
     }
