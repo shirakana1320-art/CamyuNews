@@ -111,22 +111,23 @@ class NewsFetchWorker @AssistedInject constructor(
             // Step 4: タイトル類似度グループ化（新規記事のみ）
             val groups = groupByTitleSimilarity(newArticles)
 
-            // Step 5: Gemini AI 処理
-            var rateLimited = false
+            // Step 5: Gemini AI 処理（5秒間隔で1件ずつ、レートリミット時は65秒待機して継続）
+            var hadRateLimit = false
             var apiKeyMissing = false
             var processedCount = 0
             val entitiesToInsert = mutableListOf<ArticleEntity>()
+            var interRequestDelay = 5_000L
 
             for ((groupId, group) in groups) {
-                if (rateLimited) {
-                    // 残りはサマリーなしで保存
+                if (apiKeyMissing) {
                     entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                     continue
                 }
-                delay(1000L) // 1req/sec スロットリング
+                delay(interRequestDelay)
 
                 when (val result = geminiService.summarizeArticleGroup(group)) {
                     is SummarizeResult.Success -> {
+                        interRequestDelay = 5_000L
                         val summary = result.result
                         val representativeId = group.first().url.toArticleId()
                         entitiesToInsert.add(
@@ -150,7 +151,8 @@ class NewsFetchWorker @AssistedInject constructor(
                     is SummarizeResult.Failure -> {
                         when (result.error) {
                             is GeminiError.RateLimitExceeded -> {
-                                rateLimited = true
+                                hadRateLimit = true
+                                interRequestDelay = 65_000L // 次のリクエストまで60秒超待機
                                 entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                             }
                             is GeminiError.ApiKeyMissing -> {
@@ -158,7 +160,6 @@ class NewsFetchWorker @AssistedInject constructor(
                                 entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                             }
                             else -> {
-                                // 個別エラーはサマリーなしで保存（翌日再処理）
                                 entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                             }
                         }
@@ -166,17 +167,18 @@ class NewsFetchWorker @AssistedInject constructor(
                 }
             }
 
-            // Step 5.5: summaryJa=null の未処理記事を再処理（レートリミットに余裕がある場合）
-            if (!rateLimited && unprocessedEntities.isNotEmpty()) {
+            // Step 5.5: summaryJa=null の未処理記事を再処理
+            if (!apiKeyMissing && unprocessedEntities.isNotEmpty()) {
                 for (entity in unprocessedEntities) {
-                    if (rateLimited) break
+                    if (apiKeyMissing) break
                     val rawForRetry = unprocessedAsRaw.find { it.url == try {
                         kotlinx.serialization.json.Json.decodeFromString<List<String>>(entity.originalUrls).firstOrNull() ?: ""
                     } catch (e: Exception) { entity.originalUrls } } ?: continue
 
-                    delay(1000L)
+                    delay(interRequestDelay)
                     when (val result = geminiService.summarizeArticleGroup(listOf(rawForRetry))) {
                         is SummarizeResult.Success -> {
+                            interRequestDelay = 5_000L
                             val summary = result.result
                             articleDao.update(
                                 entity.copy(
@@ -190,8 +192,14 @@ class NewsFetchWorker @AssistedInject constructor(
                             processedCount++
                         }
                         is SummarizeResult.Failure -> {
-                            if (result.error is GeminiError.RateLimitExceeded) rateLimited = true
-                            if (result.error is GeminiError.ApiKeyMissing) apiKeyMissing = true
+                            when (result.error) {
+                                is GeminiError.RateLimitExceeded -> {
+                                    hadRateLimit = true
+                                    interRequestDelay = 65_000L
+                                }
+                                is GeminiError.ApiKeyMissing -> apiKeyMissing = true
+                                else -> Unit
+                            }
                         }
                     }
                 }
@@ -210,7 +218,7 @@ class NewsFetchWorker @AssistedInject constructor(
 
             val errorType = when {
                 apiKeyMissing -> "api_key_missing"
-                rateLimited -> "rate_limit"
+                hadRateLimit -> "rate_limit"
                 else -> "none"
             }
             Result.success(
