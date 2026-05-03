@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Select-Object FullName)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'v.26.05.03.13 モデルを gemini-2.5-flash に変更、エラーメッセージを改善 *)",
+      "Bash(git commit -m 'v.26.05.03.14 レートリミット発生時にWorkerを即時中断してエラーバナーを表示 *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(git commit -m 'v.26.05.03.16 全体リファクタリング: 定期通知廃止・フォルダ選択表示修正・関連記事拡大・性能改善 *)"
+    ]
+  }
+}
