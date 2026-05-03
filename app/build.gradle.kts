@@ -15,8 +15,8 @@ android {
         applicationId = "com.camyuran.camyunews"
         minSdk = 26
         targetSdk = 35
-        versionCode = 26050313
-        versionName = "v.26.05.03.13"
+        versionCode = 26050314
+        versionName = "v.26.05.03.14"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -119,7 +119,7 @@ class NewsFetchWorker @AssistedInject constructor(
             var interRequestDelay = 5_000L
 
             for ((groupId, group) in groups) {
-                if (apiKeyMissing) {
+                if (apiKeyMissing || hadRateLimit) {
                     entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                     continue
                 }
@@ -152,7 +152,6 @@ class NewsFetchWorker @AssistedInject constructor(
                         when (result.error) {
                             is GeminiError.RateLimitExceeded -> {
                                 hadRateLimit = true
-                                interRequestDelay = 65_000L // 次のリクエストまで60秒超待機
                                 entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                             }
                             is GeminiError.ApiKeyMissing -> {
@@ -168,9 +167,9 @@ class NewsFetchWorker @AssistedInject constructor(
             }
 
             // Step 5.5: summaryJa=null の未処理記事を再処理
-            if (!apiKeyMissing && unprocessedEntities.isNotEmpty()) {
+            if (!apiKeyMissing && !hadRateLimit && unprocessedEntities.isNotEmpty()) {
                 for (entity in unprocessedEntities) {
-                    if (apiKeyMissing) break
+                    if (apiKeyMissing || hadRateLimit) break
                     val rawForRetry = unprocessedAsRaw.find { it.url == try {
                         kotlinx.serialization.json.Json.decodeFromString<List<String>>(entity.originalUrls).firstOrNull() ?: ""
                     } catch (e: Exception) { entity.originalUrls } } ?: continue
