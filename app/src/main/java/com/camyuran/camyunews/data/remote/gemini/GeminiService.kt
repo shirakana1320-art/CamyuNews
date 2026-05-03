@@ -101,9 +101,8 @@ class GeminiService @Inject constructor(
             }
         }
         return when {
-            msg.contains("limit: 0", ignoreCase = true) || msg.contains("limit:0", ignoreCase = true) ->
-                GeminiError.Unknown("このモデルの無料枠が利用できません（limit:0）。aistudio.google.com でAPIキーを再発行してください")
-            msg.contains("429") || msg.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ->
+            msg.contains("limit: 0", ignoreCase = true) || msg.contains("limit:0", ignoreCase = true)
+                || msg.contains("429") || msg.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ->
                 GeminiError.RateLimitExceeded
             msg.contains("API_KEY_INVALID", ignoreCase = true) ->
                 GeminiError.ApiKeyMissing
