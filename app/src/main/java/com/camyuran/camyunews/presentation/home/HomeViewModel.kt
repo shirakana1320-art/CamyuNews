@@ -30,7 +30,7 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val selectedDateKey: String = todayDateKey(),
-    val selectedCategory: String = "ai",
+    val selectedCategory: String = "all",
     val selectedSubCategory: String? = null,
     val keywordFilter: String = "",
     val fetchError: String? = null
@@ -65,6 +65,13 @@ class HomeViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val fetchProgress: StateFlow<String?> = _workInfos
+        .map { infos ->
+            infos.firstOrNull { it.state == WorkInfo.State.RUNNING }
+                ?.progress?.getString(NewsFetchWorker.KEY_PROGRESS_MESSAGE)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         viewModelScope.launch {
             availableDates.collect { dates ->
@@ -96,15 +103,20 @@ class HomeViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val articles: StateFlow<List<Article>> = _uiState
         .flatMapLatest { state ->
-            val baseFlow = when {
-                state.selectedSubCategory != null ->
-                    articleRepository.getArticlesByDateCategoryAndSubCategory(
-                        state.selectedDateKey, state.selectedCategory, state.selectedSubCategory
-                    )
-                else ->
-                    articleRepository.getArticlesByDateAndCategory(
-                        state.selectedDateKey, state.selectedCategory
-                    )
+            val baseFlow = if (state.selectedCategory == "all") {
+                articleRepository.getAllSummarizedArticles()
+            } else {
+                val flow = when {
+                    state.selectedSubCategory != null ->
+                        articleRepository.getArticlesByDateCategoryAndSubCategory(
+                            state.selectedDateKey, state.selectedCategory, state.selectedSubCategory
+                        )
+                    else ->
+                        articleRepository.getArticlesByDateAndCategory(
+                            state.selectedDateKey, state.selectedCategory
+                        )
+                }
+                flow.map { articles -> articles.filter { it.summaryJa != null } }
             }
             if (state.keywordFilter.isBlank()) baseFlow
             else baseFlow.map { articles ->

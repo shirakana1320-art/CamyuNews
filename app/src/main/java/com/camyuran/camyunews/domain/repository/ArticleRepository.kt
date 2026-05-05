@@ -18,4 +18,5 @@ interface ArticleRepository {
     fun getRecentArticlesBySubCategory(
         category: String, subCategory: String, fromDateKey: String, excludeId: String, limit: Int = 5
     ): Flow<List<Article>>
+    fun getAllSummarizedArticles(): Flow<List<Article>>
 }

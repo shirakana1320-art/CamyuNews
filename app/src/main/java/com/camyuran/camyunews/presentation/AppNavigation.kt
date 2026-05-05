@@ -1,8 +1,9 @@
 package com.camyuran.camyunews.presentation
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -21,12 +22,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.camyuran.camyunews.presentation.detail.DetailScreen
 import com.camyuran.camyunews.presentation.favorites.FavoritesScreen
+import com.camyuran.camyunews.presentation.home.DateBrowseScreen
 import com.camyuran.camyunews.presentation.home.HomeScreen
 import com.camyuran.camyunews.presentation.search.SearchScreen
 import com.camyuran.camyunews.presentation.settings.SettingsScreen
 
 sealed class Screen(val route: String, val label: String) {
     data object Home : Screen("home", "ホーム")
+    data object DateBrowse : Screen("date_browse", "日別")
     data object Favorites : Screen("favorites", "お気に入り")
     data object Search : Screen("search", "検索")
     data object Settings : Screen("settings", "設定")
@@ -41,7 +44,7 @@ fun AppNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val bottomNavItems = listOf(Screen.Home, Screen.Favorites, Screen.Search, Screen.Settings)
+    val bottomNavItems = listOf(Screen.Home, Screen.DateBrowse, Screen.Favorites, Screen.Search, Screen.Settings)
     val showBottomBar = currentRoute in bottomNavItems.map { it.route }
 
     Scaffold(
@@ -64,6 +67,7 @@ fun AppNavigation() {
                                 Icon(
                                     imageVector = when (screen) {
                                         Screen.Home -> Icons.Default.Home
+                                        Screen.DateBrowse -> Icons.Default.CalendarMonth
                                         Screen.Favorites -> Icons.Default.Bookmarks
                                         Screen.Search -> Icons.Default.Search
                                         Screen.Settings -> Icons.Default.Settings
@@ -86,6 +90,11 @@ fun AppNavigation() {
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(onArticleClick = { id ->
+                    navController.navigate(Screen.Detail.buildRoute(id))
+                })
+            }
+            composable(Screen.DateBrowse.route) {
+                DateBrowseScreen(onArticleClick = { id ->
                     navController.navigate(Screen.Detail.buildRoute(id))
                 })
             }

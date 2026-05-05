@@ -90,4 +90,13 @@ interface ArticleDao {
     fun getRecentArticlesBySubCategory(
         category: String, subCategory: String, fromDateKey: String, excludeId: String, limit: Int
     ): Flow<List<ArticleEntity>>
+
+    /** 要約完了済み全記事（日付・カテゴリ問わず） */
+    @Query("""
+        SELECT * FROM articles
+        WHERE summaryJa IS NOT NULL
+        ORDER BY publishedAt DESC, topicalityScore DESC
+        LIMIT 500
+    """)
+    fun getAllSummarizedArticles(): Flow<List<ArticleEntity>>
 }

@@ -56,6 +56,9 @@ class ArticleRepositoryImpl @Inject constructor(
         articleDao.getRecentArticlesBySubCategory(category, subCategory, fromDateKey, excludeId, limit)
             .withFavoriteStatus()
 
+    override fun getAllSummarizedArticles(): Flow<List<Article>> =
+        articleDao.getAllSummarizedArticles().withFavoriteStatus()
+
     private fun Flow<List<com.camyuran.camyunews.data.local.entity.ArticleEntity>>.withFavoriteStatus(): Flow<List<Article>> =
         combine(favoriteDao.getFavoriteIdsFlow()) { articles, favoriteIds ->
             val favoriteIdSet = favoriteIds.toSet()

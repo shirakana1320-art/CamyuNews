@@ -53,6 +53,7 @@ class NewsFetchWorker @AssistedInject constructor(
         const val KEY_ERROR_TYPE = "error_type"
         const val KEY_PROCESSED_COUNT = "processed_count"
         const val KEY_COMPLETED_AT = "completed_at"
+        const val KEY_PROGRESS_MESSAGE = "progress_message"
         private const val CHANNEL_ID = "news_updates"
         private const val NOTIFICATION_ID = 1001
         private const val JACCARD_THRESHOLD = 0.5
@@ -72,6 +73,7 @@ class NewsFetchWorker @AssistedInject constructor(
             articleDao.fixInvalidDateKeys(todayKey, todayStartMs)
 
             // Step 2: RSS 並行取得
+            setProgress(workDataOf(KEY_PROGRESS_MESSAGE to "RSSフィードを取得中..."))
             val rawArticles = fetchAllFeeds()
             if (rawArticles.isEmpty()) return Result.success()
 
@@ -83,6 +85,7 @@ class NewsFetchWorker @AssistedInject constructor(
                 val id = article.url.toArticleId()
                 id !in existingIds
             }
+            setProgress(workDataOf(KEY_PROGRESS_MESSAGE to "新着 ${newArticles.size} 件を確認中..."))
 
             // Step 3.5: summaryJa=null の未処理記事を再処理対象として取得
             val unprocessedEntities = articleDao.getUnprocessedArticles()
@@ -117,12 +120,16 @@ class NewsFetchWorker @AssistedInject constructor(
             var processedCount = 0
             val entitiesToInsert = mutableListOf<ArticleEntity>()
             var interRequestDelay = 5_000L
+            val totalGroups = groups.size
+            var currentGroup = 0
 
             for ((groupId, group) in groups) {
+                currentGroup++
                 if (apiKeyMissing || hadRateLimit) {
                     entitiesToInsert.addAll(group.map { it.toEntityWithoutSummary(groupId) })
                     continue
                 }
+                setProgress(workDataOf(KEY_PROGRESS_MESSAGE to "要約処理中... ($currentGroup / $totalGroups 件)"))
                 delay(interRequestDelay)
 
                 when (val result = geminiService.summarizeArticleGroup(group)) {
@@ -168,10 +175,12 @@ class NewsFetchWorker @AssistedInject constructor(
 
             // Step 5.5: summaryJa=null の未処理記事を再処理（インデックスで対応付け）
             if (!apiKeyMissing && !hadRateLimit && unprocessedEntities.isNotEmpty()) {
+                val totalUnprocessed = unprocessedEntities.size
                 for ((index, entity) in unprocessedEntities.withIndex()) {
                     if (apiKeyMissing || hadRateLimit) break
                     val rawForRetry = unprocessedAsRaw.getOrNull(index) ?: continue
 
+                    setProgress(workDataOf(KEY_PROGRESS_MESSAGE to "未処理記事を再要約中... (${index + 1} / $totalUnprocessed 件)"))
                     delay(interRequestDelay)
                     when (val result = geminiService.summarizeArticleGroup(listOf(rawForRetry))) {
                         is SummarizeResult.Success -> {
@@ -203,6 +212,7 @@ class NewsFetchWorker @AssistedInject constructor(
             }
 
             // Step 6: Room 保存
+            setProgress(workDataOf(KEY_PROGRESS_MESSAGE to "記事を保存中..."))
             articleDao.insertAll(entitiesToInsert)
 
             // Step 7: 通知
