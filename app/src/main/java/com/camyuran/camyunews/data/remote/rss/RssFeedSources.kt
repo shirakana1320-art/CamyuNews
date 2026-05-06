@@ -51,6 +51,18 @@ val RSS_FEED_SOURCES = listOf(
         defaultCategory = "ai",
         defaultSubCategory = "llm"
     ),
+    RssFeedSource(
+        url = "https://www.anthropic.com/blog.rss",
+        name = "Anthropic Blog",
+        defaultCategory = "ai",
+        defaultSubCategory = "claude_code"
+    ),
+    RssFeedSource(
+        url = "https://openai.com/news/rss/",
+        name = "OpenAI News",
+        defaultCategory = "ai",
+        defaultSubCategory = "codex"
+    ),
     // ── セキュリティ カテゴリ ──
     RssFeedSource(
         url = "https://feeds.feedburner.com/TheHackersNews",

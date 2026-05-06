@@ -16,6 +16,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.camyuran.camyunews.MainActivity
 import com.camyuran.camyunews.data.local.CamyuNewsDatabase
+import com.camyuran.camyunews.data.local.MIGRATION_1_2
 import com.camyuran.camyunews.util.todayDateKey
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -31,7 +32,12 @@ class NewsWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val db = CamyuNewsDatabase::class.java
-            .let { androidx.room.Room.databaseBuilder(context, it, "camyunews.db").build() }
+            .let {
+                androidx.room.Room.databaseBuilder(context, it, "camyunews.db")
+                    .addMigrations(MIGRATION_1_2)
+                    .fallbackToDestructiveMigration()
+                    .build()
+            }
         val todayKey = todayDateKey()
         val articles = db.articleDao()
             .getArticlesByDate(todayKey)

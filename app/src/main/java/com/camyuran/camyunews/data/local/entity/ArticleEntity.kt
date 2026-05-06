@@ -20,5 +20,7 @@ data class ArticleEntity(
     val topicalityScore: Int,
     val isRead: Boolean = false,
     val groupId: String?,
-    val fetchedAt: Long
+    val fetchedAt: Long,
+    /** JSON配列 e.g. ["OpenAI releases...", "GPT-5 announced..."] */
+    val originalTitles: String = "[]"
 )

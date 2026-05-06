@@ -156,7 +156,13 @@ fun DetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                items(article.originalUrls.zip(article.sourceNames.padEndWith("不明", article.originalUrls.size))) { (url, name) ->
+                items(
+                    article.originalUrls.zip(
+                        article.sourceNames.padEndWith("不明", article.originalUrls.size)
+                    ).zip(
+                        article.originalTitles.padEndWith("", article.originalUrls.size)
+                    ).map { (urlName, title) -> Triple(urlName.first, urlName.second, title) }
+                ) { (url, name, originalTitle) ->
                     OutlinedCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -177,10 +183,22 @@ fun DetailScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(name, style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary)
                                 Text(
-                                    url, style = MaterialTheme.typography.bodySmall,
+                                    name,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (originalTitle.isNotBlank()) {
+                                    Text(
+                                        originalTitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2
+                                    )
+                                }
+                                Text(
+                                    url,
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1
                                 )

@@ -22,6 +22,11 @@ fun ArticleEntity.toDomain(isFavorite: Boolean = false): Article = Article(
     } catch (e: Exception) {
         listOf(sourceNames)
     },
+    originalTitles = try {
+        json.decodeFromString<List<String>>(originalTitles)
+    } catch (e: Exception) {
+        emptyList()
+    },
     publishedAt = publishedAt,
     dateKey = dateKey,
     category = category,

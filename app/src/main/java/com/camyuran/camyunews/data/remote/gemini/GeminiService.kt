@@ -128,9 +128,19 @@ $articlesText
   "titleJa": "日本語タイトル（50文字以内）",
   "summaryJa": "日本語要約（150〜300文字、箇条書き不要・段落形式）",
   "category": "ai または security のいずれか",
-  "subCategory": "llm/image_gen/research/business/ethics/robotics/incident/cve/malware/privacy/phishing/regulation のいずれか",
+  "subCategory": "以下のいずれか1つ: llm/image_gen/research/business/ethics/robotics/claude_code/codex/incident/cve/malware/privacy/phishing/regulation",
   "topicalityScore": 話題性スコア1〜10の整数（業界への影響度・注目度で判断）
 }
+
+subCategory の選び方:
+- claude_code: Anthropic・Claude・Claude Code・Claude API・Claudeモデルに関する記事
+- codex: OpenAI・Codex・ChatGPT・GPTシリーズ・OpenAI APIに関する記事
+- llm: 上記以外の大規模言語モデル全般
+- image_gen: 画像・動画・音声生成AI
+- research: AI研究・学術論文・ベンチマーク
+- business: AI企業の事業・投資・製品発表（claude_code/codex に該当しない場合）
+- ethics: AI規制・倫理・政策・法律
+- robotics: ロボット・自律システム・ドローン
         """.trimIndent()
     }
 }

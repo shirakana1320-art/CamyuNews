@@ -3,6 +3,7 @@ package com.camyuran.camyunews.di
 import android.content.Context
 import androidx.room.Room
 import com.camyuran.camyunews.data.local.CamyuNewsDatabase
+import com.camyuran.camyunews.data.local.MIGRATION_1_2
 import com.camyuran.camyunews.data.local.dao.ArticleDao
 import com.camyuran.camyunews.data.local.dao.FavoriteDao
 import com.camyuran.camyunews.data.local.dao.FolderDao
@@ -21,6 +22,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CamyuNewsDatabase =
         Room.databaseBuilder(context, CamyuNewsDatabase::class.java, "camyunews.db")
+            .addMigrations(MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
 
