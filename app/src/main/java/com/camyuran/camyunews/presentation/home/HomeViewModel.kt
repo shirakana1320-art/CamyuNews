@@ -93,7 +93,8 @@ class HomeViewModel @Inject constructor(
                         reportedIds.add(info.id)
                         buildFetchErrorMessage(
                             info.outputData.getString(NewsFetchWorker.KEY_ERROR_TYPE),
-                            info.outputData.getInt(NewsFetchWorker.KEY_PROCESSED_COUNT, 0)
+                            info.outputData.getInt(NewsFetchWorker.KEY_PROCESSED_COUNT, 0),
+                            info.outputData.getString(NewsFetchWorker.KEY_ERROR_MESSAGE)
                         )?.let { msg -> _uiState.update { it.copy(fetchError = msg) } }
                     }
             }
@@ -120,6 +121,22 @@ class HomeViewModel @Inject constructor(
             }
             if (state.keywordFilter.isBlank()) baseFlow
             else baseFlow.map { articles ->
+                articles.filter {
+                    it.titleJa.contains(state.keywordFilter, ignoreCase = true) ||
+                            it.summaryJa?.contains(state.keywordFilter, ignoreCase = true) == true
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 日別画面専用: 選択日付の全カテゴリ記事を一括取得
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val dateArticles: StateFlow<List<Article>> = _uiState
+        .flatMapLatest { state ->
+            val flow = articleRepository.getArticlesByDate(state.selectedDateKey)
+                .map { articles -> articles.filter { it.summaryJa != null } }
+            if (state.keywordFilter.isBlank()) flow
+            else flow.map { articles ->
                 articles.filter {
                     it.titleJa.contains(state.keywordFilter, ignoreCase = true) ||
                             it.summaryJa?.contains(state.keywordFilter, ignoreCase = true) == true
@@ -155,14 +172,16 @@ class HomeViewModel @Inject constructor(
     @VisibleForTesting
     internal fun setFetchErrorForTest(msg: String) = _uiState.update { it.copy(fetchError = msg) }
 
-    private fun buildFetchErrorMessage(errorType: String?, processedCount: Int): String? =
+    private fun buildFetchErrorMessage(errorType: String?, processedCount: Int, errorMessage: String? = null): String? =
         when (errorType) {
             "api_key_missing" -> "Gemini APIキーが無効です。設定画面で正しいキーを入力してください"
             "rate_limit" -> if (processedCount == 0)
                 "APIのレートリミットに達しました。しばらく経ってから更新してください"
             else
                 "一部でレートリミットが発生しました（処理済み: ${processedCount}件）"
-            "unknown" -> if (processedCount == 0) "記事の要約に失敗しました。接続状態を確認してください" else null
+            "unknown" -> if (processedCount == 0)
+                "記事の要約に失敗しました: ${errorMessage ?: "接続状態を確認してください"}"
+            else null
             else -> null
         }
 }

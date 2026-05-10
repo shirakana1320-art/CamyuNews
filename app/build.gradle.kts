@@ -8,6 +8,7 @@ plugins {
 }
 
 android {
+    
     namespace = "com.camyuran.camyunews"
     compileSdk = 35
 

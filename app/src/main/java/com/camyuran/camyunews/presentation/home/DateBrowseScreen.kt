@@ -2,7 +2,6 @@ package com.camyuran.camyunews.presentation.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -20,7 +19,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.camyuran.camyunews.domain.model.SubCategory
 import com.camyuran.camyunews.presentation.shared.ArticleCard
 import com.camyuran.camyunews.presentation.shared.DatePickerDialog
 import com.camyuran.camyunews.util.dateKeyToLocalDate
@@ -33,7 +31,7 @@ fun DateBrowseScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val articles by viewModel.articles.collectAsStateWithLifecycle()
+    val articles by viewModel.dateArticles.collectAsStateWithLifecycle()
     val availableDates by viewModel.availableDates.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val fetchProgress by viewModel.fetchProgress.collectAsStateWithLifecycle()
@@ -41,13 +39,6 @@ fun DateBrowseScreen(
     var showKeywordFilter by remember { mutableStateOf(false) }
     val displayDates = if (availableDates.isEmpty()) listOf(uiState.selectedDateKey) else availableDates
     val clipboardManager = LocalClipboardManager.current
-
-    // ViewModel は "all" がデフォルトなので、日別画面では "ai" で初期化する
-    LaunchedEffect(Unit) {
-        if (viewModel.uiState.value.selectedCategory == "all") {
-            viewModel.selectCategory("ai")
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -109,44 +100,6 @@ fun DateBrowseScreen(
                         selected = dateKey == uiState.selectedDateKey,
                         onClick = { viewModel.selectDate(dateKey) },
                         text = { Text(dateKeyToLocalDate(dateKey).toDisplayLabel()) }
-                    )
-                }
-            }
-
-            // "all" は日別画面では使用しないので ai/security の2タブのみ
-            val categoryIndex = if (uiState.selectedCategory == "security") 1 else 0
-            TabRow(selectedTabIndex = categoryIndex) {
-                Tab(
-                    selected = uiState.selectedCategory == "ai" || uiState.selectedCategory == "all",
-                    onClick = { viewModel.selectCategory("ai") },
-                    text = { Text("AI") }
-                )
-                Tab(
-                    selected = uiState.selectedCategory == "security",
-                    onClick = { viewModel.selectCategory("security") },
-                    text = { Text("セキュリティ") }
-                )
-            }
-
-            val subCategories = SubCategory.forCategory(
-                if (uiState.selectedCategory == "all") "ai" else uiState.selectedCategory
-            )
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    FilterChip(
-                        selected = uiState.selectedSubCategory == null,
-                        onClick = { viewModel.selectSubCategory(null) },
-                        label = { Text("すべて") }
-                    )
-                }
-                items(subCategories) { subCat ->
-                    FilterChip(
-                        selected = uiState.selectedSubCategory == subCat.code,
-                        onClick = { viewModel.selectSubCategory(subCat.code) },
-                        label = { Text(subCat.displayName) }
                     )
                 }
             }

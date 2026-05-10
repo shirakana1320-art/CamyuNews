@@ -36,7 +36,8 @@ class ArticleRepositoryImplTest {
 
     @Before
     fun setUp() {
-        every { favoriteDao.getAllFavorites() } returns flowOf(emptyList())
+        // ArticleRepositoryImpl.withFavoriteStatus() は getFavoriteIdsFlow() を使用する
+        every { favoriteDao.getFavoriteIdsFlow() } returns flowOf(emptyList())
         repository = ArticleRepositoryImpl(articleDao, favoriteDao)
     }
 
@@ -55,10 +56,11 @@ class ArticleRepositoryImplTest {
     @Test
     fun `お気に入りフラグが正しく設定される`() = runTest {
         val entity = sampleEntity("article1")
-        val favorite = FavoriteEntity(id = 1, articleId = "article1", folderId = null, savedAt = 100L)
+        val favoriteArticleId = "article1"
 
         every { articleDao.getArticlesByDate("2026-05-03") } returns flowOf(listOf(entity))
-        every { favoriteDao.getAllFavorites() } returns flowOf(listOf(favorite))
+        // ArticleRepositoryImpl.withFavoriteStatus() は getFavoriteIdsFlow() を使用する
+        every { favoriteDao.getFavoriteIdsFlow() } returns flowOf(listOf(favoriteArticleId))
 
         val repo = ArticleRepositoryImpl(articleDao, favoriteDao)
         val articles = repo.getArticlesByDate("2026-05-03").first()

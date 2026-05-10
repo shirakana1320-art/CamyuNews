@@ -33,6 +33,7 @@ class HomeViewModelTest {
         summaryJa = "要約",
         originalUrls = listOf("https://example.com/$id"),
         sourceNames = listOf("Test"),
+        originalTitles = listOf("Test Article $id"),
         publishedAt = 1000L,
         dateKey = "2026-05-03",
         category = category,
@@ -51,6 +52,9 @@ class HomeViewModelTest {
                 flowOf(listOf(sampleArticle("1", "ai", "llm")))
         every { articleRepository.getArticlesByDateCategoryAndSubCategory(any(), any(), any()) } returns
                 flowOf(emptyList())
+        // 初期 selectedCategory が "all" のため getAllSummarizedArticles() が呼ばれる
+        every { articleRepository.getAllSummarizedArticles() } returns
+                flowOf(listOf(sampleArticle("1", "ai", "llm")))
         every { workManager.getWorkInfosByTagFlow(any()) } returns flowOf(emptyList<WorkInfo>())
         every { apiKeyProvider.hasApiKey() } returns true
         viewModel = HomeViewModel(articleRepository, workManager, apiKeyProvider)
@@ -82,6 +86,10 @@ class HomeViewModelTest {
     fun `サブカテゴリ選択で正しいクエリが実行される`() = runTest {
         val collectJob = launch { viewModel.articles.collect {} }
 
+        // selectedCategory が "all" の場合 getAllSummarizedArticles() が呼ばれるため、
+        // 先にカテゴリを "ai" に変更してからサブカテゴリを選択する
+        viewModel.selectCategory("ai")
+        advanceUntilIdle()
         viewModel.selectSubCategory("llm")
         advanceUntilIdle()
 

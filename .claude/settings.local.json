@@ -7,7 +7,25 @@
       "Bash(git commit -m 'v.26.05.03.14 レートリミット発生時にWorkerを即時中断してエラーバナーを表示 *)",
       "Bash(./gradlew assembleDebug)",
       "Bash(git commit -m 'v.26.05.03.16 全体リファクタリング: 定期通知廃止・フォルダ選択表示修正・関連記事拡大・性能改善 *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(findstr -i \"gemini\\\\|summarize\\\\|ai\")",
+      "Bash(xargs grep -l \"summarizeArticleGroup\\\\|RateLimitExceeded\")",
+      "Bash(xargs grep -l \"getUnprocessedArticles\\\\|getAllSummarizedArticles\")",
+      "Bash(.\\\\gradlew test *)",
+      "Bash(Select-Object -Last 50)",
+      "PowerShell(Test-Path \"C:\\\\jdk17\" && \\(Get-Item \"C:\\\\jdk17\"\\).LinkType && \\(Get-Item \"C:\\\\jdk17\"\\).Target)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --stacktrace 2>&1 | Where-Object { $_ -match \"java.library.path|Caused by|JVM|ClassNotFound\" } | Select-Object -First 30)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --info 2>&1 | Where-Object { $_ -match \"ClassNotFound|Exception|Error|PASS|FAIL|test\" } | Select-Object -First 40)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --info 2>&1 | Where-Object { $_ -match \"java.library|jvmArgs|ClassNotFound|worker started|Starting|JVM\" } | Select-Object -First 30)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --info 2>&1 | Where-Object { $_ -match \"java.library|ClassNotFound|Starting process|Process args|worker\" } | Select-Object -First 20)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --debug 2>&1 | Where-Object { $_ -match \"java.library|ClassNotFound\" } | Select-Object -First 10)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --debug 2>&1 | Where-Object { $_ -match \"java.library.path|ClassNotFound|Starting process\" } | Select-Object -First 5)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew testDebugUnitTest --no-configuration-cache --debug 2>&1 | Where-Object { $_ -match \"java.library.path\" } | Select-Object -First 3)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\) -split \";\" | Where-Object { $_ -match \"Java\" })",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) -split \";\" | Where-Object { $_ -match \"Java\" })",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew --stop 2>&1 && .\\\\gradlew testDebugUnitTest --no-configuration-cache --debug 2>&1 | Where-Object { $_ -match \"java.library.path\" } | Select-Object -First 2)",
+      "PowerShell(cd \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\" && .\\\\gradlew --stop 2>&1 && .\\\\gradlew testDebugUnitTest --no-configuration-cache --debug 2>&1 | Where-Object { $_ -match \"java.library.path\" } | Select-Object -First 1)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\shira\\\\Documents\\\\CamyuranApps\\\\CamyuNews\\\\app\\\\build\" -Directory | Where-Object { $_.Name -match \"test\" } | Select-Object FullName)"
     ]
   }
 }
