@@ -18,6 +18,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.camyuran.camyunews.presentation.shared.ArticleCard
 import com.camyuran.camyunews.presentation.shared.DatePickerDialog
@@ -39,6 +42,15 @@ fun DateBrowseScreen(
     var showKeywordFilter by remember { mutableStateOf(false) }
     val displayDates = if (availableDates.isEmpty()) listOf(uiState.selectedDateKey) else availableDates
     val clipboardManager = LocalClipboardManager.current
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.clearFetchError()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -42,6 +43,13 @@ fun HomeScreen(
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.refreshApiKeyStatus()
         }
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.clearFetchError()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

@@ -159,6 +159,7 @@ class HomeViewModel @Inject constructor(
     fun clearFetchError() = _uiState.update { it.copy(fetchError = null) }
 
     fun triggerRefresh() {
+        clearFetchError()
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
