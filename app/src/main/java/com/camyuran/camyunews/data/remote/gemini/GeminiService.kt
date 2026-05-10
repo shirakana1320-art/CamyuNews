@@ -106,6 +106,10 @@ class GeminiService @Inject constructor(
                 GeminiError.RateLimitExceeded
             msg.contains("API_KEY_INVALID", ignoreCase = true) ->
                 GeminiError.ApiKeyMissing
+            msg.contains("Unable to resolve host", ignoreCase = true)
+                || msg.contains("No address associated with hostname", ignoreCase = true)
+                || msg.contains("UnknownHostException", ignoreCase = true) ->
+                GeminiError.Unknown("インターネットに接続されていません。接続を確認してください")
             msg.contains("NOT_FOUND", ignoreCase = true) || msg.contains("404") ->
                 GeminiError.Unknown("モデルが見つかりません（NOT_FOUND）。生エラー: ${msg.take(200)}")
             else -> GeminiError.Unknown(msg.take(300))
