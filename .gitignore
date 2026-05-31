@@ -38,3 +38,5 @@ google-services.json
 
 # Claude Code local settings
 .claude/settings.local.json
+
+bash.exe.stackdump
