@@ -43,3 +43,5 @@ bash.exe.stackdump
 
 # ビルドログ（旧 PreToolUse hook の代替・bash.exe.stackdump は既存行でカバー）
 build-v*.log
+
+.claude/
