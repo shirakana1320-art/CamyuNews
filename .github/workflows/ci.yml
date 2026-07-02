@@ -17,4 +17,5 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew test
+      # gradle.properties の org.gradle.java.home（Windows ローカル用）をランナーの JDK で上書き
+      - run: ./gradlew test "-Dorg.gradle.java.home=$JAVA_HOME"
