@@ -1,0 +1,30 @@
+name: タスク（自動消化対応）
+description: 目的・受け入れ条件を明記したタスク起票。/consume-issues（夜間自動消化）が設計の入力に使います。
+title: ""
+labels: []
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: なぜやるのか・何が達成されれば成功か
+      placeholder: 例) ◯◯できるようにして、△△の手間をなくしたい
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      description: 検証可能な条件を箇条書きで（自動消化の品質はここで決まります）
+      placeholder: |
+        - [ ] ◯◯ができる
+        - [ ] △△の場合は□□になる
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: 対象外
+      description: この issue でやらないこと（スコープの膨張防止）
+    validations:
+      required: false
