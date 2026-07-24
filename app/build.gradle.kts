@@ -16,8 +16,8 @@ android {
         applicationId = "com.camyuran.camyunews"
         minSdk = 26
         targetSdk = 35
-        versionCode = 26050602
-        versionName = "v.26.07.03.1"
+        versionCode = 26050605
+        versionName = "v.26.07.25.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -48,13 +48,13 @@ android {
     // Windows AGP バグ回避: スペースを含むパスで -Djava.library.path がクォートされない問題
     sourceSets {
         getByName("test") {
-            jniLibs.setSrcDirs(listOf("C:/TmpJniLibs/test"))
+            jniLibs.setSrcDirs(if (System.getProperty("os.name").startsWith("Windows")) listOf("C:/TmpJniLibs/test") else emptyList<String>())
         }
         getByName("testDebug") {
-            jniLibs.setSrcDirs(listOf("C:/TmpJniLibs/testDebug"))
+            jniLibs.setSrcDirs(if (System.getProperty("os.name").startsWith("Windows")) listOf("C:/TmpJniLibs/testDebug") else emptyList<String>())
         }
         getByName("testRelease") {
-            jniLibs.setSrcDirs(listOf("C:/TmpJniLibs/testRelease"))
+            jniLibs.setSrcDirs(if (System.getProperty("os.name").startsWith("Windows")) listOf("C:/TmpJniLibs/testRelease") else emptyList<String>())
         }
     }
 
