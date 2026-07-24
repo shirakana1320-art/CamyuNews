@@ -45,3 +45,7 @@ bash.exe.stackdump
 build-v*.log
 
 .claude/
+
+# Codex ローカル設定（.claude/ と同様に各リポジトリではコミットしない。正本は CamyuranApps）
+.codex/
+AGENTS.md
