@@ -1,0 +1,18 @@
+# 改行コードは作業ツリーごと LF に固定する。
+# core.autocrlf=true の checkout は CRLF で書くが、ビルドツールは LF で書き戻すため、
+# index の stat キャッシュ（作業ツリーのファイルサイズ）が恒久的に食い違い、
+# 「git diff は空なのに git status が M を出し続ける」状態になる。
+# 詳細: CamyuranApps/.claude/gitattributes-new-project.md
+* text=auto eol=lf
+
+# Windows バッチは CRLF 必須。cmd.exe は行末に CR が無いとラベル・goto の解釈を誤る
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# gradlew（Unix シェルスクリプト）は LF 必須
+gradlew text eol=lf
+*.sh    text eol=lf
+
+# バイナリ（誤ってテキスト扱いされないよう明示する）
+*.jar  binary
+*.png  binary
